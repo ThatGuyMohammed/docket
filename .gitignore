@@ -1,0 +1,33 @@
+# dependencies
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# build output
+dist/
+build/
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+gateway/bin/
+gateway/gateway
+
+# local config and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# editor
+.idea/
+.vscode/
+.DS_Store
+
+# scratch
+NOTES*.md
+docs/internal/

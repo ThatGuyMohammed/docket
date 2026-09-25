@@ -1,0 +1,85 @@
+name: docket
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: docket
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-docket}
+      POSTGRES_DB: docket
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docket"]
+      interval: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/api.Dockerfile
+    env_file:
+      - path: ../.env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg://docket:${POSTGRES_PASSWORD:-docket}@db:5432/docket
+      STORAGE_DIR: /data/blobs
+    volumes:
+      - blobs:/data/blobs
+      - ./secrets:/run/secrets/docket:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ..
+      dockerfile: deploy/worker.Dockerfile
+    environment:
+      DATABASE_URL: postgresql://docket:${POSTGRES_PASSWORD:-docket}@db:5432/docket
+      RECEIPT_KEY_PATH: /keys/receipts.pem
+      EXPORT_DROP_DIR: /export
+    volumes:
+      - receipt-keys:/keys
+      - exports:/export
+    depends_on:
+      - api
+
+  gateway:
+    build:
+      context: ..
+      dockerfile: deploy/gateway.Dockerfile
+    environment:
+      UPSTREAM_URL: http://api:8000
+      TLS_CERT_FILE: /certs/tls.crt
+      TLS_KEY_FILE: /certs/tls.key
+      PARTNER_PUBLIC_KEY: ${PARTNER_PUBLIC_KEY:-}
+    volumes:
+      - ./certs:/certs:ro
+    ports:
+      - "9443:9443"
+    depends_on:
+      - api
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/web.Dockerfile
+
+  edge:
+    image: nginx:1.27
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./edge:/etc/nginx/conf.d:ro
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - gateway
+      - web
+
+volumes:
+  pgdata:
+  blobs:
+  receipt-keys:
+  exports:

@@ -1,0 +1,10 @@
+fastapi==0.141.1
+uvicorn[standard]==0.54.0
+SQLAlchemy==2.1.0
+psycopg[binary]==3.3.6
+python-multipart==0.0.32
+pydantic==2.13.5
+cryptography==48.0.1
+PyJWT==2.10.1
+boto3==1.43.102
+httpx==0.28.1
